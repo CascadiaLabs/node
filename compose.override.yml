@@ -1,0 +1,9 @@
+# Локальная разработка: bridge вместо host (иначе sing-box пишет
+# "missing default interface" под Docker Desktop) + публикация портов.
+# Наследует env_file и volume из compose.yml.
+services:
+  node:
+    network_mode: bridge
+    ports:
+      - "443:443"
+      - "8080:8080"

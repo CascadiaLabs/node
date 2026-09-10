@@ -1,0 +1,9 @@
+services:
+  node:
+    build: .
+    container_name: cascadia-node
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    volumes:
+      - ./data:/var/lib/node

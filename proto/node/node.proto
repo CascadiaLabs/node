@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package node;
+
+option go_package = "github.com/CascadiaLabs/node/proto/node";
+
+// NodeService управляет sing-box на лету.
+service NodeService {
+  // UpdateConfig полностью заменяет конфиг sing-box (нативный JSON) и применяет его без рестарта.
+  rpc UpdateConfig (UpdateConfigRequest) returns (UpdateConfigResponse);
+  // GetConfig возвращает последний применённый конфиг.
+  rpc GetConfig (GetConfigRequest) returns (GetConfigResponse);
+  // GetStatus возвращает состояние ноды.
+  rpc GetStatus (GetStatusRequest) returns (GetStatusResponse);
+}
+
+message UpdateConfigRequest {
+  string config_json = 1;
+}
+
+message UpdateConfigResponse {
+  bool ok = 1;
+  string error = 2;
+}
+
+message GetConfigRequest {}
+
+message GetConfigResponse {
+  string config_json = 1;
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  bool running = 1;
+  string singbox_version = 2;
+  int64 uptime_seconds = 3;
+  int32 inbounds = 4;
+  int32 outbounds = 5;
+  int64 last_update_unix = 6;
+}
