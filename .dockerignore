@@ -1,5 +1,7 @@
 .git
 .env
+certs
+*.key
 data
 *.md
 LICENSE

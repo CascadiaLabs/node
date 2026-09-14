@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"crypto/subtle"
+	"fmt"
 	"strings"
 
 	pb "github.com/CascadiaLabs/node/proto/node"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -43,10 +45,27 @@ func (s *nodeServer) GetStatus(_ context.Context, _ *pb.GetStatusRequest) (*pb.G
 }
 
 // NewGRPCServer собирает gRPC-сервер с bearer-аутентификацией.
-func NewGRPCServer(mgr *Manager, token string) *grpc.Server {
-	srv := grpc.NewServer(grpc.UnaryInterceptor(bearerAuth(token)))
+// Если заданы пути к TLS-сертификату и ключу — API поднимается поверх TLS.
+func NewGRPCServer(mgr *Manager, token, tlsCertPath, tlsKeyPath string) (*grpc.Server, error) {
+	if token == "" {
+		return nil, fmt.Errorf("NODE_API_TOKEN не задан")
+	}
+	opts := []grpc.ServerOption{grpc.UnaryInterceptor(bearerAuth(token))}
+
+	if tlsCertPath != "" || tlsKeyPath != "" {
+		if tlsCertPath == "" || tlsKeyPath == "" {
+			return nil, fmt.Errorf("задан только один из NODE_TLS_CERT/NODE_TLS_KEY — укажите оба или уберите оба")
+		}
+		creds, err := credentials.NewServerTLSFromFile(tlsCertPath, tlsKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("не удалось загрузить TLS-сертификат (%s, %s): %w", tlsCertPath, tlsKeyPath, err)
+		}
+		opts = append(opts, grpc.Creds(creds))
+	}
+
+	srv := grpc.NewServer(opts...)
 	pb.RegisterNodeServiceServer(srv, &nodeServer{mgr: mgr})
-	return srv
+	return srv, nil
 }
 
 // bearerAuth проверяет заголовок "authorization: Bearer <token>" на каждом unary-вызове.

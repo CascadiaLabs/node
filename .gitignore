@@ -29,6 +29,7 @@ go.work.sum
 
 # persisted node config (volume)
 /data/
+/certs/
 
 # Editor/IDE
 # .idea/

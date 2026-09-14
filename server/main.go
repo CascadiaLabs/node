@@ -21,6 +21,8 @@ func main() {
 	}
 	listenAddr := getenv("NODE_API_LISTEN", "0.0.0.0:6237")
 	configPath := getenv("NODE_CONFIG_PATH", "/var/lib/node/config.json")
+	tlsCert := os.Getenv("NODE_TLS_CERT")
+	tlsKey := os.Getenv("NODE_TLS_KEY")
 
 	mgr := NewManager(configPath)
 	if err := mgr.Load(); err != nil {
@@ -32,14 +34,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("не удалось слушать %s: %v", listenAddr, err)
 	}
-	grpcSrv := NewGRPCServer(mgr, token)
+	grpcSrv, err := NewGRPCServer(mgr, token, tlsCert, tlsKey)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	go func() {
 		if err := grpcSrv.Serve(lis); err != nil {
 			log.Printf("gRPC-сервер остановлен: %v", err)
 		}
 	}()
-	fmt.Printf("🚀 Go-Нода запущена, gRPC API на %s\n", listenAddr)
+	if tlsCert != "" {
+		fmt.Printf("🚀 Go-Нода запущена, gRPC API на %s (TLS)\n", listenAddr)
+	} else {
+		fmt.Printf("🚀 Go-Нода запущена, gRPC API на %s (БЕЗ TLS — задайте NODE_TLS_CERT/NODE_TLS_KEY)\n", listenAddr)
+	}
 
 	osSignal := make(chan os.Signal, 1)
 	signal.Notify(osSignal, os.Interrupt, syscall.SIGTERM)

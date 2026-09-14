@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -67,9 +68,36 @@ func build(raw []byte) (*box.Box, context.CancelFunc, option.Options, error) {
 	return instance, cancel, opts, nil
 }
 
-// Apply валидирует и применяет новый конфиг на лету. При любой ошибке
-// текущий работающий инстанс не трогается.
+// Apply валидирует и применяет новый конфиг на лету. Старый инстанс
+// останавливается ДО старта нового — иначе повторный деплой падает на
+// занятых портах ("address already in use"). Если новый конфиг не поднялся —
+// откатываемся на последний работоспособный.
 func (m *Manager) Apply(raw []byte) error {
+	m.mu.Lock()
+	old, oldCancel := m.instance, m.cancel
+	oldRaw := append([]byte(nil), m.rawConfig...)
+	m.mu.Unlock()
+
+	if old == nil {
+		return m.install(raw)
+	}
+
+	// освобождаем порты старого инстанса
+	oldCancel()
+	_ = old.Close()
+
+	if err := m.install(raw); err != nil {
+		// откат: старый конфиг заведомо стартовал ранее
+		if rerr := m.install(oldRaw); rerr != nil {
+			return fmt.Errorf("%w; откат на предыдущий конфиг не удался: %v", err, rerr)
+		}
+		return err
+	}
+	return nil
+}
+
+// install поднимает инстанс из raw и публикует его как текущий.
+func (m *Manager) install(raw []byte) error {
 	instance, cancel, opts, err := build(raw)
 	if err != nil {
 		return err
@@ -81,7 +109,6 @@ func (m *Manager) Apply(raw []byte) error {
 	}
 
 	m.mu.Lock()
-	old, oldCancel := m.instance, m.cancel
 	m.instance = instance
 	m.cancel = cancel
 	m.rawConfig = append([]byte(nil), raw...)
@@ -93,11 +120,6 @@ func (m *Manager) Apply(raw []byte) error {
 	m.inbounds = len(opts.Inbounds)
 	m.outbounds = len(opts.Outbounds)
 	m.mu.Unlock()
-
-	if old != nil {
-		oldCancel()
-		_ = old.Close()
-	}
 
 	m.persist(raw)
 	return nil

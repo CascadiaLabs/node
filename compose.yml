@@ -7,3 +7,4 @@ services:
     env_file: .env
     volumes:
       - ./data:/var/lib/node
+      - ./certs:/etc/node/certs:ro

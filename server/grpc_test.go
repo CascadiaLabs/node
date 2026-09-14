@@ -20,7 +20,10 @@ const testToken = "s3cret-token"
 func newTestClient(t *testing.T) pb.NodeServiceClient {
 	t.Helper()
 	lis := bufconn.Listen(1 << 20)
-	srv := NewGRPCServer(NewManager(""), testToken)
+	srv, err := NewGRPCServer(NewManager(""), testToken, "", "")
+	if err != nil {
+		t.Fatalf("server: %v", err)
+	}
 	go func() { _ = srv.Serve(lis) }()
 	t.Cleanup(srv.Stop)
 
@@ -66,5 +69,29 @@ func TestAuthValidToken(t *testing.T) {
 	}
 	if resp.GetRunning() {
 		t.Fatal("fresh manager: want running=false")
+	}
+}
+
+func TestServerRejectsEmptyToken(t *testing.T) {
+	if srv, err := NewGRPCServer(NewManager(""), "", "", ""); err == nil || srv != nil {
+		t.Fatal("empty token must fail closed")
+	}
+}
+
+func TestTLSRequiresBothFiles(t *testing.T) {
+	for _, tt := range []struct{ name, cert, key string }{
+		{"certificate only", "/missing/cert.pem", ""},
+		{"key only", "", "/missing/key.pem"},
+		{"missing files", "/missing/cert.pem", "/missing/key.pem"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, err := NewGRPCServer(NewManager(""), testToken, tt.cert, tt.key)
+			if srv != nil {
+				srv.Stop()
+			}
+			if err == nil || srv != nil {
+				t.Fatal("invalid TLS files must fail without plaintext fallback")
+			}
+		})
 	}
 }
