@@ -9,7 +9,12 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/sagernet/sing-box/constant"
 )
+
+// version задаётся при сборке (-X main.version=...); dev-сборки — "dev".
+var version = "dev"
 
 func main() {
 	loadDotEnv(".env")
@@ -45,9 +50,9 @@ func main() {
 		}
 	}()
 	if tlsCert != "" {
-		fmt.Printf("🚀 Go-Нода запущена, gRPC API на %s (TLS)\n", listenAddr)
+		fmt.Printf("🚀 Go-Нода %s (sing-box %s) запущена, gRPC API на %s (TLS)\n", version, constant.Version, listenAddr)
 	} else {
-		fmt.Printf("🚀 Go-Нода запущена, gRPC API на %s (БЕЗ TLS — задайте NODE_TLS_CERT/NODE_TLS_KEY)\n", listenAddr)
+		fmt.Printf("🚀 Go-Нода %s (sing-box %s) запущена, gRPC API на %s (БЕЗ TLS — задайте NODE_TLS_CERT/NODE_TLS_KEY)\n", version, constant.Version, listenAddr)
 	}
 
 	osSignal := make(chan os.Signal, 1)
