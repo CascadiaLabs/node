@@ -37,4 +37,4 @@ sudo bash -c "$(curl -sL https://github.com/CascadiaLabs/install/raw/main/node.s
 Имя git-тега = имя Docker-тега (`1a`, `1b` — альфа, бета релизы, `1`, `2`, `3` —
 стабильные). Пуш тега публикует образ той же версии в GHCR
 (`ghcr.io/cascadialabs/node:1a`); `:latest` — `main`. Версия ноды и sing-box
-печатаются при старте: `docker logs node 2>&1 | head -1`.
+печатаются при старте: `docker logs cascadia-node 2>&1 | head -1`.
