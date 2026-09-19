@@ -84,7 +84,7 @@ const urltestBalancer = `{
     {"type": "direct", "tag": "cascadia-direct"}
   ],
   "route": {"final": "cascadia-direct",
-            "rules": [{"inbound": ["in1"], "domain_suffix": [".ru"], "network": ["tcp"], "outbound": "bal"}]}
+            "rules": [{"inbound": ["in1"], "domain_suffix": ["ru"], "network": ["tcp"], "outbound": "bal"}]}
 }`
 
 const hysteria2TUIC = `{
